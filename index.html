@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sistema de Pedidos</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        orange: { DEFAULT:'#E8430A', light:'#fff3ee', dark:'#c93a08' },
+        brand: { green:'#16A34A', blue:'#2563EB', red:'#DC2626', gold:'#B45309' }
+      },
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+    }
+  }
+}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body class="bg-gray-100 font-sans text-gray-900 min-h-screen">
+
+<div class="screen active" id="s-home">
+  <div class="min-h-screen bg-amber-50 flex flex-col items-center justify-center px-5 py-8 gap-5">
+    <div class="text-center mb-2">
+      <div class="text-6xl mb-3">🍴</div>
+      <h1 class="text-3xl font-black text-gray-900">Sistema de Pedidos</h1>
+      <p class="text-gray-500 mt-1 text-sm">Escolha seu perfil de acesso</p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-lg p-6 w-full max-w-sm">
+      <div class="text-4xl mb-2">👤</div>
+      <h2 class="text-xl font-bold mb-1">Cliente</h2>
+      <p class="text-sm text-gray-500 mb-4">Faça seu pedido digitalmente</p>
+      <div class="flex gap-2 mb-4">
+        <button id="tipo-mesa" onclick="setTipo('mesa')" class="flex-1 py-2.5 rounded-xl border-2 border-[#E8430A] bg-[#E8430A] text-white font-bold text-sm transition">🪑 Mesa</button>
+        <button id="tipo-retirada" onclick="setTipo('retirada')" class="flex-1 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-400 font-bold text-sm transition">🛍️ Retirada</button>
+      </div>
+      <div id="mesa-wrap">
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Número da mesa</label>
+        <input type="number" id="mesa-in" placeholder="Ex: 5, 12, 30..." min="1"
+          class="input-base mb-3 text-center text-lg font-bold" oninput="onMesaInput()">
+      </div>
+      <div id="retirada-wrap" class="hidden">
+        <label class="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Número do pedido</label>
+        <div class="flex gap-2 mb-1">
+          <input type="text" id="retirada-in" placeholder="Pressione Gerar" readonly
+            class="input-base text-center text-lg font-bold bg-gray-50 flex-1">
+          <button onclick="gerarRetirada()" class="btn-primary text-sm px-4" style="width:auto;border-radius:10px">Gerar</button>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">Informe esse número ao cliente na entrega</p>
+      </div>
+      <button id="btn-acc" onclick="acessar()" disabled
+        class="btn-primary w-full opacity-50 cursor-not-allowed">
+        Acessar Cardápio
+      </button>
+      <p class="text-center text-xs text-gray-400 mt-3">Escaneie o QR Code da mesa ou digite o número</p>
+    </div>
+
+    <div class="bg-gray-800 rounded-2xl shadow-lg p-5 w-full max-w-sm">
+      <div class="flex items-center gap-2 text-white font-bold text-sm mb-4">🔒 Área Restrita — Funcionários</div>
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <button onclick="openStaff('cozinha')" class="staff-btn"><span class="text-2xl block mb-1">👨‍🍳</span><span class="text-white text-xs font-bold block">Cozinha</span><span class="text-gray-400 text-[10px] block leading-tight mt-0.5">Pedidos e preparo</span></button>
+        <button onclick="openStaff('garcom')" class="staff-btn"><span class="text-2xl block mb-1">🤵</span><span class="text-white text-xs font-bold block">Garçom</span><span class="text-gray-400 text-[10px] block leading-tight mt-0.5">Entregas</span></button>
+        <button onclick="openStaff('caixa')" class="staff-btn"><span class="text-2xl block mb-1">💰</span><span class="text-white text-xs font-bold block">Caixa</span><span class="text-gray-400 text-[10px] block leading-tight mt-0.5">Pagamentos</span></button>
+      </div>
+      <p class="text-center text-xs text-gray-500">Acesso protegido por senha</p>
+      <p class="text-center text-xs text-gray-600 mt-1">Senha de demonstração: <strong class="text-white">1234</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-cliente">
+  <div class="topbar bg-orange">
+    <button onclick="voltarHome()" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 id="mesa-title" class="topbar-title">Mesa 10</h1><p class="topbar-sub">Faça seu pedido</p></div>
+    <div class="w-9"></div>
+  </div>
+
+  <div id="hist-area" class="hidden px-4 pt-3">
+    <p class="section-label">📋 Seus Pedidos</p>
+    <div id="hist-list"></div>
+  </div>
+
+  <div class="tabs-bar sticky top-[60px] z-30" id="ctabs">
+    <button class="tab active" onclick="ctab('entradas',this)">Entradas</button>
+    <button class="tab" onclick="ctab('principal',this)">Principal</button>
+    <button class="tab" onclick="ctab('sobremesas',this)">Sobremesas</button>
+    <button class="tab" onclick="ctab('bebidas',this)">Bebidas</button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto pb-24" id="c-menu"></div>
+
+  <div id="cart-footer" class="hidden cart-footer">
+    <div><p class="text-xs text-gray-500" id="cf-q">0 itens</p><p class="text-base font-bold text-orange" id="cf-t">R$ 0,00</p></div>
+    <button onclick="openChk()" class="btn-primary px-5 py-2.5 text-sm">Ver Pedido →</button>
+  </div>
+</div>
+
+<div class="screen" id="s-chk">
+  <div class="topbar bg-orange">
+    <button onclick="go('cliente')" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 class="topbar-title">Meu Pedido</h1><p id="chk-sub" class="topbar-sub">Mesa 10</p></div>
+    <div class="w-9"></div>
+  </div>
+  <div class="flex-1 overflow-y-auto px-4 py-4 pb-8">
+    <div id="chk-items"></div>
+    <div class="border-t border-gray-200 my-3"></div>
+    <div class="flex justify-between items-center text-base font-bold mb-6">
+      <span>Total</span><span id="chk-total" class="text-orange text-lg">R$ 0,00</span>
+    </div>
+
+    <p class="text-sm font-bold mb-3">💳 Forma de Pagamento</p>
+    <div class="flex flex-col gap-2.5 mb-5">
+      <button class="pay-opt" id="pay-mesa" onclick="selPay('mesa')"><span class="text-xl">💵</span><span class="font-medium">Pagar na mesa / caixa</span></button>
+      <button class="pay-opt" id="pay-pix" onclick="selPay('pix')"><span class="text-xl">📱</span><span class="font-medium">Pagar via Pix</span></button>
+    </div>
+
+    <div id="pix-box" class="hidden mb-5">
+      <div class="pix-qr-container" id="pix-qr-svg"></div>
+      <p class="text-center text-xs text-gray-500 mt-2 mb-1">Valor exato do pedido</p>
+      <div class="text-center text-2xl font-black text-gray-900" id="pix-val">R$ 0,00</div>
+      <p class="text-center text-xs text-gray-400 mt-1">QR Code válido por 10 minutos</p>
+    </div>
+
+    <div id="bev-warn" class="hidden bg-yellow-50 border border-yellow-300 rounded-xl p-3 mb-4 text-sm text-yellow-800">
+      ⚠️ Escolha quando servir cada bebida antes de confirmar
+    </div>
+    <button id="btn-conf" disabled onclick="confirmar()" class="btn-primary w-full opacity-50">Confirmar Pedido</button>
+  </div>
+</div>
+
+<div class="screen" id="s-coz">
+  <div class="topbar bg-red-600">
+    <button onclick="voltarHome()" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 class="topbar-title">Cozinha</h1><p id="coz-count" class="topbar-sub">0 pedidos ativos</p></div>
+    <div class="w-9"></div>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4">
+    <div id="coz-empty" class="hidden empty-state"><div class="text-5xl mb-3">🎉</div><p>Nenhum pedido no momento</p></div>
+    <div class="grid grid-cols-2 gap-3" id="coz-grid"></div>
+  </div>
+</div>
+
+<div class="screen" id="s-gar">
+  <div class="topbar bg-green-600">
+    <button onclick="voltarHome()" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 class="topbar-title">Painel do Garçom</h1><p class="topbar-sub">Entregas e atendimento</p></div>
+    <div class="relative w-9 flex justify-end">
+      <button class="icon-btn relative">🔔<span id="gar-badge" class="badge-dot hidden">0</span></button>
+    </div>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4">
+    <p class="section-label">🥤 Bebidas para Servir Agora (<span id="bev-cnt">0</span>)</p>
+    <div id="bev-list"></div>
+    <p class="section-label mt-5">✅ Prontos para Entrega (<span id="prn-cnt">0</span>)</p>
+    <div id="prn-list"></div>
+    <div class="grid grid-cols-3 gap-3 mt-5">
+      <div class="stat-card"><div class="stat-num text-green-600" id="g-p">0</div><div class="stat-lbl">Prontos</div></div>
+      <div class="stat-card"><div class="stat-num text-blue-600" id="g-b">0</div><div class="stat-lbl">Bebidas</div></div>
+      <div class="stat-card"><div class="stat-num text-orange" id="g-pg">0</div><div class="stat-lbl">A Pagar</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-cx">
+  <div class="topbar bg-yellow-600">
+    <button onclick="voltarHome()" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 class="topbar-title">Caixa</h1><p class="topbar-sub">Processamento de pagamentos</p></div>
+    <button onclick="go('rel')" class="icon-btn">📊</button>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4">
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-3">Buscar Pedido</p>
+      <div class="flex gap-2">
+        <input type="number" id="cx-in" placeholder="Número da mesa" min="1" class="input-base flex-1">
+        <button onclick="buscarCx()" class="btn-primary px-4 text-sm">Buscar</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <p class="section-label" style="margin-top:0">🔍 Pedido em Atendimento</p>
+        <div id="cx-area"><div class="empty-state text-sm"><div class="text-3xl mb-2">🔍</div><p>Busque uma mesa para processar o pagamento</p></div></div>
+      </div>
+      <div>
+        <p class="section-label" style="margin-top:0">💳 Pendentes (<span id="pend-cnt">0</span>)</p>
+        <div id="pend-list"><div class="empty-state text-sm"><div class="text-3xl mb-2">✅</div><p>Todos os pedidos foram pagos!</p></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-rel">
+  <div class="topbar bg-yellow-600">
+    <button onclick="go('cx')" class="icon-btn">←</button>
+    <div class="text-center flex-1"><h1 class="topbar-title">Relatórios</h1><p class="topbar-sub">Análise de vendas</p></div>
+    <div class="w-9"></div>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4 pb-8">
+
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-3">📅 Período</p>
+      <div class="flex gap-2 flex-wrap mb-3">
+        <button onclick="setPeriod('hoje',this)" class="period-btn active">Hoje</button>
+        <button onclick="setPeriod('semana',this)" class="period-btn">Semana</button>
+        <button onclick="setPeriod('mes',this)" class="period-btn">Mês</button>
+        <button onclick="setPeriod('ano',this)" class="period-btn">Ano</button>
+        <button onclick="setPeriod('custom',this)" class="period-btn">Personalizado</button>
+      </div>
+      <div id="custom-dates" class="hidden grid grid-cols-2 gap-2 mb-3">
+        <div><label class="text-xs text-gray-500 block mb-1">De</label><input type="date" id="dt-from" class="input-base text-sm"></div>
+        <div><label class="text-xs text-gray-500 block mb-1">Até</label><input type="date" id="dt-to" class="input-base text-sm"></div>
+        <button onclick="rRel()" class="col-span-2 btn-primary text-sm py-2">Aplicar</button>
+      </div>
+      <button onclick="downloadRelatorio()" class="w-full border-2 border-dashed border-gray-300 rounded-xl py-2.5 text-sm font-semibold text-gray-600 hover:border-orange hover:text-orange transition-colors flex items-center justify-center gap-2">
+        ⬇️ Baixar Relatório PDF
+      </button>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2.5 mb-4">
+      <div class="stat-card"><div class="stat-num text-green-600 text-lg" id="r-fat">R$0</div><div class="stat-lbl">Faturamento</div></div>
+      <div class="stat-card"><div class="stat-num text-blue-600" id="r-ped">0</div><div class="stat-lbl">Pedidos</div></div>
+      <div class="stat-card"><div class="stat-num text-orange" id="r-tkt">R$0</div><div class="stat-lbl">Ticket Médio</div></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-3">💳 Formas de Pagamento</p>
+      <div id="pay-breakdown"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-1">📈 Vendas por Hora</p>
+      <div id="chart-h" class="flex items-end gap-1.5 h-24 mt-3"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-3">🏆 Itens Mais Vendidos</p>
+      <div id="top-items"></div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm p-4 mb-4">
+      <p class="font-bold text-sm mb-3">📋 Todos os Pedidos</p>
+      <div id="all-orders"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-senha">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <h3 class="text-lg font-bold">🔒 Área Restrita</h3>
+    <p class="text-sm text-gray-500 mb-4 mt-1">Digite a senha para continuar</p>
+    <input type="password" id="senha-in" placeholder="Senha" class="input-base text-center text-2xl tracking-widest mb-2">
+    <p id="senha-err" class="hidden text-red-500 text-xs text-center mb-2">Senha incorreta. Tente novamente.</p>
+    <div class="flex gap-3 mt-3">
+      <button onclick="cm('m-senha')" class="btn-outline flex-1">Cancelar</button>
+      <button onclick="confSenha()" class="btn-primary flex-1">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-edit">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <h3 class="text-lg font-bold" id="edit-name"></h3>
+    <p class="text-sm text-gray-500 mt-1 mb-4">Personalize o seu pedido</p>
+
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Remover ingredientes</p>
+    <div class="flex flex-wrap gap-2 mb-4" id="edit-ings"></div>
+
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Observações / Anotações</p>
+    <textarea id="edit-obs" rows="3" placeholder="Ex: bem passado, sem sal, alergia a camarão..." class="input-base text-sm resize-none"></textarea>
+
+    <div class="flex gap-3 mt-4">
+      <button onclick="cm('m-edit')" class="btn-outline flex-1">Cancelar</button>
+      <button onclick="saveEdit()" class="btn-primary flex-1">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-cx">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <h3 class="text-lg font-bold" id="m-cx-title">Mesa X</h3>
+    <p class="text-sm text-gray-500 mt-1 mb-4" id="m-cx-sub"></p>
+    <div id="m-cx-items"></div>
+    <div class="border-t-2 border-gray-900 mt-3 pt-3 flex justify-between font-black text-base mb-5">
+      <span>Total</span><span id="m-cx-total" class="text-orange"></span>
+    </div>
+
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Forma de Pagamento</p>
+    <div class="flex flex-col gap-2 mb-4">
+      <button onclick="selCxPay('pix')" class="pay-opt" id="cpay-pix"><span class="text-xl">📱</span> Pix</button>
+      <button onclick="selCxPay('cartao')" class="pay-opt" id="cpay-cartao"><span class="text-xl">💳</span> Cartão</button>
+      <button onclick="selCxPay('dinheiro')" class="pay-opt" id="cpay-dinheiro"><span class="text-xl">💵</span> Dinheiro</button>
+    </div>
+
+    <div id="troco-area" class="hidden bg-gray-50 rounded-xl p-4 mb-4">
+      <p class="text-sm font-semibold mb-3">💵 Troco</p>
+      <div class="flex flex-col gap-2">
+        <button onclick="setTroco('sem')" class="pay-opt" id="troco-sem"><span>✅</span> Não precisa de troco</button>
+        <div class="flex items-center gap-2 pay-opt cursor-default" id="troco-com-wrap" onclick="setTroco('com')">
+          <span>🔄</span>
+          <span class="text-sm font-medium">Troco para</span>
+          <input type="number" id="troco-val" placeholder="R$ 0,00" min="0" step="0.01" onclick="event.stopPropagation();setTroco('com')"
+            class="flex-1 border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-right focus:outline-none focus:border-orange" style="max-width:100px">
+        </div>
+      </div>
+      <div id="troco-result" class="hidden mt-3 bg-green-50 border border-green-200 rounded-lg p-2 text-sm text-center font-semibold text-green-800"></div>
+    </div>
+
+    <button id="btn-baixa" disabled onclick="darBaixa()" class="btn-primary w-full opacity-50">✓ Confirmar Pagamento</button>
+  </div>
+</div>
+
+<div class="modal-ov" id="m-coz-detail">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="flex justify-between items-start mb-1">
+      <h3 class="text-lg font-bold" id="coz-detail-title">Mesa X — Em Preparo</h3>
+      <div class="timer-badge" id="coz-detail-timer">0:00</div>
+    </div>
+    <p class="text-xs text-gray-400 mb-4" id="coz-detail-sub"></p>
+    <div id="coz-detail-items"></div>
+    <div class="flex gap-3 mt-4">
+      <button onclick="cm('m-coz-detail')" class="btn-outline flex-1 text-sm">Fechar</button>
+      <button id="btn-pronto" onclick="mkPronto()" class="btn-green flex-1 text-sm">✅ Marcar como Pronto</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast">Mensagem</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
